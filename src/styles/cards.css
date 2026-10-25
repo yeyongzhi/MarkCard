@@ -1,0 +1,351 @@
+.export-card {
+  box-sizing: border-box;
+  color: var(--card-ink);
+  font-family: var(--card-font);
+  flex: none;
+  text-align: left;
+  overflow-wrap: anywhere;
+  -webkit-font-smoothing: antialiased;
+}
+.export-card * {
+  box-sizing: border-box;
+}
+.card-paper {
+  position: relative;
+  padding: var(--card-padding);
+  background: var(--card-paper);
+  border-radius: var(--card-radius);
+  box-shadow: var(--card-shadow);
+  overflow: hidden;
+}
+.card-eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font:
+    500 10px/1.5 Arial,
+    sans-serif;
+  letter-spacing: 2.7px;
+  color: var(--card-accent);
+  margin-bottom: 32px;
+}
+.card-mark {
+  font-size: 24px;
+  line-height: 1;
+}
+.card-issue {
+  margin-left: auto;
+  letter-spacing: 1px;
+  opacity: 0.65;
+}
+.markcard-content {
+  font-size: var(--card-font-size);
+  line-height: var(--card-line-height);
+}
+.markcard-content > :first-child {
+  margin-top: 0;
+}
+.markcard-content > :last-child {
+  margin-bottom: 0;
+}
+.markcard-content h1 {
+  font-size: 1.9em;
+  line-height: 1.5;
+  letter-spacing: -0.04em;
+  font-weight: 700;
+  margin: 0 0 0.9em;
+}
+.markcard-content h2 {
+  font-size: 1.15em;
+  line-height: 1.5;
+  margin: 1.7em 0 0.8em;
+  font-weight: 700;
+  color: var(--card-accent);
+}
+.markcard-content h3,
+.markcard-content h4,
+.markcard-content h5,
+.markcard-content h6 {
+  font-weight: 700;
+  font-size: 1.05em;
+  margin: 1.4em 0 0.6em;
+}
+.markcard-content p {
+  margin: 0 0 1.1em;
+}
+.markcard-content strong {
+  font-weight: 700;
+}
+.markcard-content em {
+  font-style: italic;
+}
+.markcard-content s {
+  text-decoration: line-through;
+}
+.markcard-content a {
+  color: var(--card-accent);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.markcard-content blockquote {
+  border-left: 3px solid var(--card-accent);
+  padding: 0.8em 1.15em;
+  margin: 1.5em 0;
+  color: var(--card-accent);
+  background: color-mix(in srgb, var(--card-accent) 6%, transparent);
+  border-radius: 0 5px 5px 0;
+}
+.markcard-content blockquote p {
+  margin: 0;
+}
+.markcard-content ul,
+.markcard-content ol {
+  padding-left: 1.4em;
+  margin: 1.1em 0;
+}
+.markcard-content ul {
+  list-style: disc;
+}
+.markcard-content ol {
+  list-style: decimal;
+}
+.markcard-content li {
+  padding-left: 0.2em;
+  margin: 0.5em 0;
+}
+.markcard-content li::marker {
+  color: var(--card-accent);
+}
+.markcard-content li > p {
+  margin: 0;
+}
+.markcard-content hr {
+  border: 0;
+  height: 1px;
+  background: var(--card-accent);
+  opacity: 0.2;
+  margin: 1.6em 0;
+}
+.markcard-content pre {
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  padding: 1.15em;
+  border-radius: 7px;
+  font:
+    0.76em/1.7 Consolas,
+    monospace;
+  background: #edf0ed;
+  color: #35453b;
+  margin: 1.4em 0;
+}
+.markcard-content :not(pre) > code {
+  background: color-mix(in srgb, var(--card-accent) 9%, transparent);
+  padding: 0.12em 0.3em;
+  border-radius: 3px;
+  font-size: 0.86em;
+}
+.markcard-content pre code {
+  font: inherit;
+  white-space: inherit;
+}
+.markcard-content .hljs-keyword,
+.markcard-content .hljs-selector-tag {
+  color: #9b4b8e;
+}
+.markcard-content .hljs-string,
+.markcard-content .hljs-attr {
+  color: #43744d;
+}
+.markcard-content .hljs-number,
+.markcard-content .hljs-literal {
+  color: #b36432;
+}
+.markcard-content .hljs-comment {
+  color: #8b948d;
+}
+.markcard-content .hljs-title {
+  color: #4279a4;
+}
+.export-card[data-code-theme='dark'] pre {
+  background: #17211e;
+  color: #e0e9e3;
+}
+.export-card[data-code-theme='dark'] .hljs-keyword {
+  color: #d0a6df;
+}
+.export-card[data-code-theme='dark'] .hljs-string {
+  color: #a4cea7;
+}
+.export-card[data-code-theme='dark'] .hljs-title {
+  color: #8ec0db;
+}
+.markcard-content table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+  font-size: 0.83em;
+  margin: 1.2em 0;
+}
+.markcard-content th,
+.markcard-content td {
+  padding: 0.65em;
+  border: 1px solid color-mix(in srgb, var(--card-accent) 25%, transparent);
+  overflow-wrap: anywhere;
+  text-align: left;
+}
+.markcard-content th {
+  font-weight: 700;
+  background: color-mix(in srgb, var(--card-accent) 8%, transparent);
+}
+.markcard-content img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 6px;
+  display: block;
+  margin: 1.2em auto;
+}
+.image-placeholder {
+  display: block;
+  padding: 1em;
+  border: 1px dashed var(--card-accent);
+  font-size: 0.8em;
+  color: var(--card-accent);
+  border-radius: 4px;
+}
+.card-signature {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 24px;
+  margin-top: 40px;
+  font-size: 11px;
+  line-height: 1.8;
+  color: var(--card-accent);
+}
+.card-signature > div {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.card-signature > span {
+  text-align: right;
+  max-width: 55%;
+}
+.signature-line {
+  height: 1px;
+  width: 20px;
+  background: var(--card-accent);
+  display: inline-block;
+}
+.card-page {
+  text-align: center;
+  margin-top: 20px;
+  font:
+    10px/1.5 Arial,
+    sans-serif;
+  letter-spacing: 2px;
+  opacity: 0.5;
+}
+.export-card[data-template='editorial'] .card-eyebrow {
+  border-top: 4px solid var(--card-ink);
+  padding-top: 16px;
+}
+.export-card[data-template='editorial'] h1 {
+  font-size: 2.4em;
+  line-height: 1.25;
+}
+.export-card[data-template='editorial'] h2 {
+  border-bottom: 1px solid var(--card-accent);
+  padding-bottom: 0.5em;
+}
+.export-card[data-template='newspaper'] .card-eyebrow {
+  border-block: 2px solid var(--card-ink);
+  padding-block: 12px;
+  justify-content: center;
+}
+.export-card[data-template='newspaper'] h1 {
+  text-align: center;
+  border-bottom: 1px solid var(--card-ink);
+  padding-bottom: 0.8em;
+  line-height: 1.4;
+}
+.export-card[data-template='newspaper'] .card-signature {
+  border-top: 1px solid var(--card-ink);
+  padding-top: 12px;
+}
+.export-card[data-template='blueprint'] .card-paper {
+  background-image:
+    linear-gradient(#377cb10b 1px, transparent 1px),
+    linear-gradient(90deg, #377cb10b 1px, transparent 1px);
+  background-size: 20px 20px;
+  border: 1px solid #377cb130;
+}
+.export-card[data-template='blueprint'] h2 {
+  border-left: 4px solid var(--card-accent);
+  padding-left: 0.7em;
+}
+.export-card[data-template='terminal'] .card-eyebrow {
+  letter-spacing: 1px;
+  border-bottom: 1px solid #8ecea935;
+  padding-bottom: 18px;
+}
+.export-card[data-template='terminal'] h1::before {
+  content: '> ';
+  color: var(--card-accent);
+}
+.export-card[data-template='terminal'] blockquote {
+  border-left-style: dashed;
+}
+.export-card[data-template='quote'] h1 {
+  font-size: 1.75em;
+  line-height: 1.5;
+}
+.export-card[data-template='quote'] .card-eyebrow {
+  margin-bottom: 60px;
+}
+.export-card[data-template='quote'] .card-signature {
+  margin-top: 60px;
+}
+.export-card[data-template='notebook'] .card-paper {
+  background-image: repeating-linear-gradient(
+    transparent,
+    transparent 35px,
+    #ad85430d 35px,
+    #ad85430d 36px
+  );
+  border-top: 8px solid #d7bd87;
+}
+.export-card[data-template='notebook'] h2 {
+  display: table;
+  background: #f3dfa9;
+  padding: 0.1em 0.5em;
+  transform: rotate(-1deg);
+}
+.export-card[data-template='mint'] h2 {
+  display: table;
+  border-radius: 6px;
+  padding: 0.2em 0.65em;
+  background: #2b856b10;
+}
+.export-card[data-template='night'] .card-eyebrow {
+  letter-spacing: 4px;
+}
+.export-card[data-template='night'] h1 {
+  color: #f0f3f4;
+}
+.export-card[data-template='sunset'] .card-eyebrow,
+.export-card[data-template='aurora'] .card-eyebrow {
+  padding-bottom: 18px;
+  border-bottom: 1px solid color-mix(in srgb, var(--card-accent) 20%, transparent);
+}
+.export-card[data-template='minimal'] .card-eyebrow {
+  margin-bottom: 45px;
+}
+.export-card[data-template='minimal'] blockquote {
+  background: transparent;
+  font-size: 1.1em;
+}
+.markcard-content h1 {
+  text-wrap: balance;
+}
