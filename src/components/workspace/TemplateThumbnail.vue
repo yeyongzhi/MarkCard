@@ -2,6 +2,7 @@
 import { computed, ref } from 'vue'
 import { useElementSize } from '@vueuse/core'
 import CardRenderer from '@/components/card/CardRenderer.vue'
+import { Card, CardContent } from '@/components/ui/card'
 import type { CardDocument } from '@/types/document'
 
 const props = defineProps<{ templateId: string }>()
@@ -24,16 +25,22 @@ const document = computed<CardDocument>(() => ({
 </script>
 
 <template>
-  <span
-    ref="container"
+  <Card
+    class="pointer-events-none w-full gap-0 rounded-none bg-transparent py-3 ring-0"
     aria-hidden="true"
-    class="template-thumbnail pointer-events-none relative block aspect-[4/5] w-full overflow-hidden"
   >
-    <span
-      class="absolute left-0 top-0 block origin-top-left whitespace-normal text-left"
-      :style="{ width: `${previewWidth}px`, transform: `scale(${scale})` }"
-    >
-      <CardRenderer :document="document" :markdown="markdown" :assets="{}" />
-    </span>
-  </span>
+    <CardContent class="px-3">
+      <span
+        ref="container"
+        class="template-thumbnail relative block aspect-[4/5] w-full overflow-hidden"
+      >
+        <span
+          class="absolute left-0 top-0 block origin-top-left whitespace-normal text-left"
+          :style="{ width: `${previewWidth}px`, transform: `scale(${scale})` }"
+        >
+          <CardRenderer :document="document" :markdown="markdown" :assets="{}" />
+        </span>
+      </span>
+    </CardContent>
+  </Card>
 </template>

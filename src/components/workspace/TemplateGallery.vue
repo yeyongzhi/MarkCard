@@ -27,11 +27,13 @@ const store = useDocumentStore()
         <ItemHeader class="w-full shrink-0 basis-auto"
           ><TemplateThumbnail :template-id="template.id"
         /></ItemHeader>
-        <div class="flex w-full items-center justify-between gap-2">
-          <ItemContent
-            ><ItemTitle>{{ template.name }}</ItemTitle></ItemContent
+        <div class="relative flex w-full items-center justify-center">
+          <ItemContent class="items-center"
+            ><ItemTitle class="w-full justify-center text-center">{{
+              template.name
+            }}</ItemTitle></ItemContent
           >
-          <ItemActions
+          <ItemActions class="absolute right-0"
             ><Check v-if="store.doc.templateId === template.id" aria-hidden="true"
           /></ItemActions>
         </div>

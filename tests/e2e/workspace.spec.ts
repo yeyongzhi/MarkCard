@@ -65,6 +65,34 @@ test('all twelve templates generate real PNG images', async ({ page }) => {
   }
 })
 
+test('copies a single card or offers a download fallback', async ({
+  page,
+  context,
+  browserName,
+}) => {
+  if (browserName === 'chromium')
+    await context.grantPermissions(['clipboard-read', 'clipboard-write'])
+  await page.setViewportSize({ width: 1440, height: 700 })
+  await page.getByRole('textbox', { name: 'Markdown 正文' }).fill('# 一张卡片\n\n正文内容。')
+  await expect(page.locator('.preview-canvas .export-card')).toHaveCount(1)
+  const copy = page.getByRole('button', { name: '复制卡片为 PNG' })
+  await copy.click()
+  if (browserName === 'webkit') {
+    await expect(page.getByText('浏览器未允许复制图片，请使用导出卡片下载 PNG')).toBeVisible()
+    await expect(page.getByRole('button', { name: '导出卡片' })).toBeEnabled()
+    return
+  }
+  await expect(page.getByText('卡片已复制为 PNG')).toBeVisible()
+  if (browserName === 'chromium') {
+    const png = await page.evaluate(async () => {
+      const [item] = await navigator.clipboard.read()
+      const blob = await item!.getType('image/png')
+      return [...new Uint8Array(await blob.slice(0, 8).arrayBuffer())]
+    })
+    expect(png).toEqual([137, 80, 78, 71, 13, 10, 26, 10])
+  }
+})
+
 test('local image survives save, backup and valid import; invalid import preserves content', async ({
   page,
 }) => {
@@ -114,8 +142,60 @@ test('local image survives save, backup and valid import; invalid import preserv
   expect((await imagePending).suggestedFilename()).toMatch(/\.png$/)
 })
 
+test('image insertion keeps its original position and rejects edits during image validation', async ({
+  page,
+}) => {
+  const editor = page.getByRole('textbox', { name: 'Markdown 正文' })
+  await editor.fill('前后')
+  await editor.evaluate((element: HTMLTextAreaElement) => element.setSelectionRange(1, 1))
+  const chooserPromise = page.waitForEvent('filechooser')
+  await page.getByRole('button', { name: '插入本地图片' }).click()
+  const chooser = await chooserPromise
+  const png = Buffer.from(
+    await page.evaluate(() => {
+      const canvas = document.createElement('canvas')
+      canvas.width = canvas.height = 4
+      return canvas.toDataURL('image/png').split(',')[1]!
+    }),
+    'base64',
+  )
+  await chooser.setFiles({ name: 'pixel.png', mimeType: 'image/png', buffer: png })
+  await expect(editor).toHaveValue(/^前\n\n!\[pixel\.png\]\(asset:[\w-]+\)\n\n后$/)
+
+  await page.evaluate(() => {
+    Image.prototype.decode = () =>
+      new Promise<void>((resolve) => {
+        ;(window as typeof window & { finishImageDecode?: () => void }).finishImageDecode = resolve
+      })
+  })
+  await page.locator('#local-image').setInputFiles({
+    name: 'second.png',
+    mimeType: 'image/png',
+    buffer: png,
+  })
+  await expect
+    .poll(() =>
+      page.evaluate(() =>
+        Boolean((window as typeof window & { finishImageDecode?: () => void }).finishImageDecode),
+      ),
+    )
+    .toBe(true)
+  await editor.fill('编辑期间改变正文')
+  await page.evaluate(() =>
+    (window as typeof window & { finishImageDecode?: () => void }).finishImageDecode?.(),
+  )
+  await expect(page.getByText('处理图片时正文已改变，请重新插入图片')).toBeVisible()
+  await expect(editor).toHaveValue('编辑期间改变正文')
+  const assetCount = await page.evaluate(async () => {
+    const { useDocumentStore } = await import('/src/stores/document.ts')
+    return useDocumentStore().assets.length
+  })
+  expect(assetCount).toBe(1)
+})
+
 test('mobile workflow has no page overflow', async ({ page }) => {
   await page.setViewportSize({ width: 375, height: 812 })
+  await expect(page.getByRole('button', { name: '复制卡片为 PNG' })).toBeInViewport()
   await page.getByRole('tab', { name: '编辑', exact: true }).click()
   await page
     .getByRole('textbox', { name: 'Markdown 正文' })

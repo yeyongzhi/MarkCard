@@ -21,8 +21,8 @@ const base: CardStyle = {
   width: 720,
   padding: 48,
   fontFamilyId: 'sans',
-  fontSize: 20,
-  lineHeight: 1.85,
+  fontSize: 16,
+  lineHeight: 1,
   textColor: '#30332d',
   accentColor: '#546b42',
   backgroundId: 'template',
@@ -188,7 +188,6 @@ export const templates: CardTemplate[] = definitions.map(
           : 'sans',
       codeThemeId: ['night', 'terminal'].includes(id) ? 'dark' : 'light',
       radius: ['editorial', 'newspaper', 'blueprint'].includes(id) ? 2 : 12,
-      fontSize: id === 'quote' ? 28 : 20,
     },
   }),
 )

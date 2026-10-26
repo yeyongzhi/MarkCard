@@ -29,7 +29,7 @@ const cards = computed(() => splitCards(snapshot.value.markdown).cards)
 const zoom = computed(
   () =>
     manualZoom.value ??
-    Math.max(0.1, Math.min(1, (width.value - 48) / effectiveStyle(snapshot.value).width)),
+    Math.max(0.1, Math.min(1, (width.value - 24) / effectiveStyle(snapshot.value).width)),
 )
 onBeforeUnmount(() => clearTimeout(timer))
 defineExpose({
@@ -48,7 +48,7 @@ defineExpose({
 <template>
   <section class="flex h-full min-h-0 flex-col" aria-label="卡片预览">
     <ScrollArea ref="area" class="min-h-0 flex-1 bg-card">
-      <div class="preview-canvas flex min-h-full flex-col items-center gap-6 p-6">
+      <div class="preview-canvas flex min-h-full flex-col items-center gap-4 p-3">
         <PreviewCard
           v-for="(card, index) in cards"
           :key="index"

@@ -129,14 +129,30 @@ export const useDocumentStore = defineStore('document', () => {
     skipWatch = false
     saveState.value = 'saved'
   }
-  async function addImage(file: File) {
+  async function addImage(
+    file: File,
+    position: number,
+    expectedMarkdown: string,
+    expectedId: string,
+  ) {
     if (assets.value.reduce((sum, a) => sum + a.blob.size, 0) + file.size > 20 * 1024 * 1024)
       throw new Error('图片总大小不能超过 20MB')
     const asset = await makeAsset(file, file.name)
+    if (doc.value.id !== expectedId || doc.value.markdown !== expectedMarkdown)
+      throw new Error('处理图片时正文已改变，请重新插入图片')
+    if (assets.value.reduce((sum, a) => sum + a.blob.size, 0) + asset.blob.size > 20 * 1024 * 1024)
+      throw new Error('图片总大小不能超过 20MB')
+    const markup = `![${file.name.replace(/[\[\]\n]/g, '')}](asset:${asset.id})`
+    const insertion = `\n\n${markup}\n\n`
+    const next = expectedMarkdown.slice(0, position) + insertion + expectedMarkdown.slice(position)
+    if (next.length > 100000) throw new Error('正文空间不足，请缩短后再插入图片')
+    const url = URL.createObjectURL(asset.blob)
     assets.value.push(asset)
-    assetUrls.value[asset.id] = URL.createObjectURL(asset.blob)
+    assetUrls.value[asset.id] = url
     doc.value.assetIds.push(asset.id)
-    return `![${file.name.replace(/[\[\]\n]/g, '')}](asset:${asset.id})`
+    doc.value.markdown = next
+    doc.value.updatedAt = new Date().toISOString()
+    return position + insertion.length
   }
   return {
     doc,

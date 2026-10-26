@@ -101,7 +101,7 @@ const contrastLow = computed(() => {
                 id="line-height"
                 label="行高"
                 :value="store.style.lineHeight"
-                :min="1.2"
+                :min="1"
                 :max="2.4"
                 :step="0.05"
                 @change="(v) => store.setStyle('lineHeight', v)"

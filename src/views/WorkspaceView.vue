@@ -3,16 +3,18 @@ import { computed, onBeforeUnmount, onMounted, ref, toRaw, watch } from 'vue'
 import { useMediaQuery } from '@vueuse/core'
 import {
   Check,
+  Copy,
   LoaderCircle,
   PanelsTopLeft,
   ArrowDownToLine,
-  CircleHelp,
+  Info,
   CircleAlert,
 } from '@lucide/vue'
+import { version } from '../../package.json'
 import { toast } from 'vue-sonner'
 import { useDocumentStore, createDocument } from '@/stores/document'
 import { parseProject, serializeProject } from '@/features/persistence'
-import { downloadBlob, exportCards } from '@/features/export'
+import { createCardPng, downloadBlob, exportCards } from '@/features/export'
 import type { CardDocument, LocalAsset } from '@/types/document'
 import EditorPanel from '@/components/workspace/EditorPanel.vue'
 import PreviewPanel from '@/components/workspace/PreviewPanel.vue'
@@ -21,6 +23,7 @@ import StylePanel from '@/components/workspace/StylePanel.vue'
 import GlobalSettings from '@/components/workspace/GlobalSettings.vue'
 import ThemePicker from '@/components/workspace/ThemePicker.vue'
 import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
 import { Card, CardHeader, CardContent, CardFooter } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -81,6 +84,7 @@ const exporting = ref(false)
 const exportDone = ref(0)
 const exportTotal = ref(1)
 const exportError = ref('')
+const copying = ref(false)
 let aborter: AbortController | undefined
 const saveText = computed(
   () =>
@@ -218,6 +222,37 @@ async function startExport() {
   }
 }
 
+async function copyCard() {
+  if (!store.ready || !store.cards.length || copying.value) return
+  if (!navigator.clipboard?.write || typeof ClipboardItem === 'undefined') {
+    toast.error('当前浏览器不支持复制图片，请使用导出卡片下载 PNG')
+    return
+  }
+  copying.value = true
+  const urls = Object.fromEntries(store.assets.map((a) => [a.id, URL.createObjectURL(a.blob)]))
+  const png = createCardPng(structuredClone(toRaw(store.doc)), urls, 0, 1)
+  try {
+    await navigator.clipboard.write([new ClipboardItem({ 'image/png': png })])
+    toast.success('卡片已复制为 PNG')
+  } catch (error) {
+    const renderError = await png.then(
+      () => null,
+      (reason: unknown) => reason,
+    )
+    toast.error(
+      renderError
+        ? message(renderError)
+        : error instanceof DOMException && error.name === 'NotAllowedError'
+          ? '浏览器未允许复制图片，请使用导出卡片下载 PNG'
+          : message(error),
+    )
+  } finally {
+    await png.catch(() => undefined)
+    Object.values(urls).forEach(URL.revokeObjectURL)
+    copying.value = false
+  }
+}
+
 function keydown(event: KeyboardEvent) {
   if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 's') {
     event.preventDefault()
@@ -249,11 +284,14 @@ onBeforeUnmount(() => {
 
 <template>
   <div class="app-shell bg-muted/30">
-    <Card class="shrink-0 gap-0 py-0"
-      ><CardHeader class="p-4"
-        ><header class="flex flex-wrap items-center gap-4">
+    <Card class="workspace-header-card shrink-0 gap-0 py-0"
+      ><CardHeader class="px-3 py-2 sm:px-6"
+        ><header class="flex items-center gap-4">
           <a href="#/" class="flex shrink-0 items-center gap-2" aria-label="MarkCard 首页"
-            ><PanelsTopLeft class="size-6" /><span>MarkCard</span></a
+            ><PanelsTopLeft class="size-6" /><span
+              class="workspace-brand-title text-[1.5rem] font-bold"
+              >MarkCard</span
+            ></a
           >
           <div class="ml-auto flex items-center gap-2">
             <GlobalSettings />
@@ -280,13 +318,25 @@ onBeforeUnmount(() => {
                   variant="ghost"
                   size="icon"
                   class="hidden sm:inline-flex"
-                  aria-label="使用帮助"
+                  aria-label="关于说明"
                   @click="helpOpen = true"
-                  ><CircleHelp /></Button></TooltipTrigger
-              ><TooltipContent>使用帮助</TooltipContent></Tooltip
+                  ><Info /></Button></TooltipTrigger
+              ><TooltipContent>关于说明</TooltipContent></Tooltip
             >
             <Button :disabled="!store.ready || !store.cards.length" @click="exportOpen = true"
               ><ArrowDownToLine data-icon="inline-start" />导出卡片</Button
+            >
+            <Tooltip
+              ><TooltipTrigger as-child
+                ><Button
+                  variant="ghost"
+                  size="icon"
+                  aria-label="复制卡片为 PNG"
+                  :disabled="!store.ready || !store.cards.length || copying"
+                  @click="copyCard"
+                  ><LoaderCircle v-if="copying" class="animate-spin" /><Copy
+                    v-else /></Button></TooltipTrigger
+              ><TooltipContent>复制卡片为 PNG</TooltipContent></Tooltip
             >
           </div>
         </header></CardHeader
@@ -350,9 +400,9 @@ onBeforeUnmount(() => {
         ></ResizablePanel>
       </ResizablePanelGroup>
     </main>
-    <Card class="shrink-0 gap-0 py-0"
-      ><CardFooter class="border-t-0 bg-card px-4 py-2"
-        ><footer class="workspace-footer flex w-full items-center justify-between flex-wrap gap-2">
+    <Card class="workspace-footer-card shrink-0 gap-0 py-0"
+      ><CardFooter class="h-full border-t-0 bg-card px-3 py-0 sm:px-6"
+        ><footer class="workspace-footer flex h-full w-full items-center justify-between gap-2">
           <time :datetime="now.toISOString()" class="tabular-nums">{{ localTime }}</time>
           <PreviewZoomControls
             class="ml-auto"
@@ -488,14 +538,22 @@ onBeforeUnmount(() => {
     >
 
     <Dialog v-model:open="helpOpen"
-      ><DialogContent
+      ><DialogContent class="max-h-[calc(100dvh-2rem)] overflow-y-auto sm:max-w-lg"
         ><DialogHeader
-          ><DialogTitle>使用帮助</DialogTitle
-          ><DialogDescription>编辑文字，选择模板后导出图片</DialogDescription></DialogHeader
+          ><DialogTitle class="flex items-center gap-2"
+            >关于 MarkCard <Badge variant="secondary">v{{ version }}</Badge></DialogTitle
+          >
+          <DialogDescription
+            >MarkCard 是一款在浏览器中将 Markdown
+            排版为图片卡片的创作工具。你可以选择模板、调整排版与配色、实时预览，并导出 PNG
+            图片。</DialogDescription
+          ></DialogHeader
         >
-        <p>剪刀按钮插入手动分卡标记，卡片会在预览区依次排列</p>
-        <p>图片按钮可插入 PNG、JPEG 或 WebP，单图不超过 5MB</p>
-        <p>在编辑工具栏的更多操作中下载项目备份；清理浏览器数据会删除本地草稿</p>
+        <div class="flex flex-col gap-3">
+          <p>使用剪刀按钮手动分卡，多张卡片会在预览区依次展示。</p>
+          <p>图片按钮支持插入 PNG、JPEG 和 WebP，本地图片单张不超过 5MB。</p>
+          <p>作品自动保存在当前浏览器。可从编辑工具栏的“更多操作”下载项目备份。</p>
+        </div>
       </DialogContent></Dialog
     >
   </div>

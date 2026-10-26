@@ -1,6 +1,17 @@
 import { describe, expect, it } from 'vitest'
 import { splitCards, renderMarkdown } from '../../src/features/markdown'
 import { validateDocument } from '../../src/features/persistence'
+import { templates } from '../../src/templates'
+
+it('defaults every template to 16px text and 1.0 line height', () => {
+  for (const template of templates) {
+    expect(template.defaults.fontSize).toBe(16)
+    expect(template.defaults.lineHeight).toBe(1)
+  }
+  expect(
+    validateDocument({ ...draft, styleOverrides: { lineHeight: 1 } }).styleOverrides.lineHeight,
+  ).toBe(1)
+})
 
 describe('manual card breaks', () => {
   it('splits only the explicit top level marker', () => {

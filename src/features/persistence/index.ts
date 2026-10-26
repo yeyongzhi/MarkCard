@@ -61,7 +61,7 @@ const numeric: Record<string, [number, number]> = {
   width: [320, 1440],
   padding: [16, 96],
   fontSize: [12, 72],
-  lineHeight: [1.2, 2.4],
+  lineHeight: [1, 2.4],
   radius: [0, 48],
 }
 const enums: Record<string, string[]> = {

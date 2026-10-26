@@ -6,6 +6,29 @@ test.beforeEach(async ({ page }) => {
   await expect(page.getByRole('textbox', { name: 'Markdown 正文' })).toBeVisible()
 })
 
+test('editor toolbar uses the horizontal ScrollArea scrollbar', async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 812 })
+  await page.getByRole('tab', { name: '编辑', exact: true }).click()
+  const area = page.locator('.editor-toolbar[data-slot=scroll-area]')
+  const viewport = area.locator('[data-slot=scroll-area-viewport]')
+  const scrollbar = area.locator('[data-slot=scroll-area-scrollbar][data-orientation=horizontal]')
+  await expect(scrollbar).toBeVisible()
+  expect(await viewport.evaluate((element) => element.scrollWidth > element.clientWidth)).toBe(true)
+  await viewport.evaluate((element) => {
+    element.scrollLeft = element.scrollWidth
+  })
+  await expect(page.getByRole('button', { name: '更多操作', exact: true })).toBeInViewport()
+})
+
+test('about dialog shows the application and version in a wider panel', async ({ page }) => {
+  await page.getByRole('button', { name: '关于说明' }).click()
+  const dialog = page.getByRole('dialog')
+  await expect(dialog).toContainText('关于 MarkCard')
+  await expect(dialog).toContainText(/v\d+\.\d+\.\d+/)
+  await expect(dialog).toContainText('将 Markdown 排版为图片卡片')
+  expect((await dialog.boundingBox())!.width).toBeGreaterThan(400)
+})
+
 test('uses a neutral workbench, uniform text and an inline template tab', async ({ page }) => {
   expect(await page.evaluate(() => getComputedStyle(document.documentElement).fontSize)).toBe(
     '16px',
@@ -20,8 +43,9 @@ test('uses a neutral workbench, uniform text and an inline template tab', async 
   for (const selector of elements) {
     await expect(page.locator(selector).first()).toHaveCSS('font-size', '16px')
   }
+  await expect(page.locator('.workspace-brand-title')).toHaveCSS('font-size', '24px')
   for (const card of await page
-    .locator('.app-shell > [data-slot=card], main [data-slot=card]')
+    .locator('.app-shell > [data-slot=card], main [data-slot=resizable-panel] > [data-slot=card]')
     .all()) {
     await expect(card).toHaveCSS('background-color', /^(rgb\(255, 255, 255\)|oklch\(1 0 0\))$/)
   }
@@ -29,9 +53,20 @@ test('uses a neutral workbench, uniform text and an inline template tab', async 
     'background-color',
     /^(rgb\(255, 255, 255\)|oklch\(1 0 0\))$/,
   )
+  const headerBounds = await page.locator('.workspace-header-card').boundingBox()
+  expect(headerBounds).toMatchObject({ x: 0, y: 0, width: 1440 })
+  expect(headerBounds!.height).toBeGreaterThan(40)
+  const footerBounds = await page.locator('.workspace-footer-card').boundingBox()
+  expect(footerBounds).toMatchObject({ x: 0, width: 1440, height: 40 })
+  expect(footerBounds!.y + footerBounds!.height).toBe(1000)
+  await expect(page.locator('.workspace-header-card')).toHaveCSS('border-top-left-radius', '0px')
+  await expect(page.locator('.workspace-header-card')).toHaveCSS('border-bottom-left-radius', '0px')
+  await expect(page.locator('.workspace-footer-card')).toHaveCSS('border-top-left-radius', '0px')
+  await expect(page.locator('.workspace-footer-card')).toHaveCSS('border-bottom-left-radius', '0px')
   await expect(
     page.getByRole('region', { name: '卡片预览' }).locator('[data-slot=scroll-area-viewport]'),
   ).toBeVisible()
+  await expect(page.locator('.preview-canvas')).toHaveCSS('padding-top', '12px')
   const primary = await page
     .getByRole('button', { name: '导出卡片' })
     .evaluate((el) => getComputedStyle(el).backgroundColor)
@@ -119,6 +154,19 @@ test('both separators resize panels using pointer and keyboard', async ({ page }
 test('toolbar formats a selection, supports undo/redo and opens an image chooser', async ({
   page,
 }) => {
+  const toolbar = page.getByRole('toolbar', { name: '编辑工具栏' })
+  expect(
+    await toolbar.evaluate((element) => {
+      const buttons = [...element.querySelectorAll('button')]
+      return (
+        element.scrollWidth > element.clientWidth &&
+        buttons.every(
+          (button) =>
+            button.getBoundingClientRect().top === buttons[0]!.getBoundingClientRect().top,
+        )
+      )
+    }),
+  ).toBe(true)
   const editor = page.getByRole('textbox', { name: 'Markdown 正文' })
   await editor.fill('测试文字')
   await editor.selectText()

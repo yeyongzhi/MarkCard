@@ -25,6 +25,7 @@ import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Input } from '@/components/ui/input'
 import { Separator } from '@/components/ui/separator'
+import { ScrollArea } from '@/components/ui/scroll-area'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
 import {
@@ -46,6 +47,7 @@ const emit = defineEmits<{
 }>()
 const editor = ref<{ $el: HTMLTextAreaElement }>()
 const fileInput = ref<{ $el: HTMLInputElement }>()
+let imageInsertion: { position: number; markdown: string; documentId: string } | undefined
 const history = ref<string[]>([store.doc.markdown])
 const position = ref(0)
 let restoring = false
@@ -150,16 +152,36 @@ function prefixLines(prefix: string) {
   })
 }
 function pickImage() {
+  imageInsertion = {
+    position: editor.value?.$el.selectionStart ?? store.doc.markdown.length,
+    markdown: store.doc.markdown,
+    documentId: store.doc.id,
+  }
   fileInput.value?.$el.click()
 }
 async function addImage(event: Event) {
   const input = event.target as HTMLInputElement
   const file = input.files?.[0]
-  if (!file) return
+  if (!file) {
+    imageInsertion = undefined
+    return
+  }
+  const insertion = imageInsertion ?? {
+    position: editor.value?.$el.selectionStart ?? store.doc.markdown.length,
+    markdown: store.doc.markdown,
+    documentId: store.doc.id,
+  }
+  imageInsertion = undefined
   try {
-    if (store.doc.markdown.length > 99000) throw new Error('正文空间不足，请缩短后再插入图片')
-    const markup = await store.addImage(file)
-    insert(`\n\n${markup}\n\n`)
+    const cursor = await store.addImage(
+      file,
+      insertion.position,
+      insertion.markdown,
+      insertion.documentId,
+    )
+    await nextTick()
+    editor.value?.$el.focus()
+    editor.value?.$el.setSelectionRange(cursor, cursor)
   } catch (error) {
     toast.error(error instanceof Error ? error.message : '图片插入失败')
   } finally {
@@ -217,76 +239,93 @@ defineExpose({ undo, redo, canUndo, canRedo, insert, pickImage })
 
 <template>
   <section class="flex h-full min-h-0 flex-col" aria-label="Markdown 编辑区域">
-    <div
-      class="flex flex-wrap items-center gap-1 border-b p-2"
-      role="toolbar"
-      aria-label="编辑工具栏"
+    <ScrollArea
+      class="editor-toolbar h-16 min-w-0 shrink-0 border-b"
+      scrollbar-orientation="horizontal"
+      type="always"
     >
-      <Tooltip
-        ><TooltipTrigger as-child
-          ><Button variant="ghost" size="icon" aria-label="撤销" :disabled="!canUndo" @click="undo"
-            ><Undo2 /></Button></TooltipTrigger
-        ><TooltipContent>撤销</TooltipContent></Tooltip
+      <div
+        class="flex w-max min-w-full flex-nowrap items-center gap-1 whitespace-nowrap px-2 py-2"
+        role="toolbar"
+        aria-label="编辑工具栏"
       >
-      <Tooltip
-        ><TooltipTrigger as-child
-          ><Button variant="ghost" size="icon" aria-label="重做" :disabled="!canRedo" @click="redo"
-            ><Redo2 /></Button></TooltipTrigger
-        ><TooltipContent>重做</TooltipContent></Tooltip
-      >
-      <Separator orientation="vertical" class="mx-1 h-5" />
-      <DropdownMenu
-        ><DropdownMenuTrigger as-child
-          ><Button variant="ghost" size="icon" aria-label="标题级别"
-            ><Heading /></Button></DropdownMenuTrigger
-        ><DropdownMenuContent
-          ><DropdownMenuGroup
-            ><DropdownMenuItem
-              v-for="level in 6"
-              :key="level"
-              @select="prefixLines('#'.repeat(level) + ' ')"
-              >{{ level }} 级标题</DropdownMenuItem
-            ></DropdownMenuGroup
-          ></DropdownMenuContent
-        ></DropdownMenu
-      >
-      <Tooltip v-for="tool in tools" :key="tool.label"
-        ><TooltipTrigger as-child
-          ><Button variant="ghost" size="icon" :aria-label="tool.label" @click="tool.action"
-            ><component :is="tool.icon" /></Button></TooltipTrigger
-        ><TooltipContent>{{ tool.label }}</TooltipContent></Tooltip
-      >
-      <DropdownMenu>
-        <DropdownMenuTrigger as-child
-          ><Button variant="ghost" size="icon" aria-label="更多操作"><MoreHorizontal /></Button
-        ></DropdownMenuTrigger>
-        <DropdownMenuContent>
-          <DropdownMenuGroup>
-            <DropdownMenuItem @select="emit('import')">导入作品</DropdownMenuItem>
-            <DropdownMenuItem @select="emit('backup')">下载项目备份</DropdownMenuItem>
-            <DropdownMenuItem @select="emit('downloadMarkdown')">下载 Markdown</DropdownMenuItem>
-            <DropdownMenuItem @select="emit('sample')">载入示例</DropdownMenuItem>
-          </DropdownMenuGroup>
-          <DropdownMenuSeparator />
-          <DropdownMenuGroup
-            ><DropdownMenuItem @select="emit('clear')"
-              >清空当前作品</DropdownMenuItem
-            ></DropdownMenuGroup
-          >
-        </DropdownMenuContent>
-      </DropdownMenu>
-      <Input
-        id="local-image"
-        ref="fileInput"
-        type="file"
-        class="hidden"
-        aria-hidden="true"
-        tabindex="-1"
-        accept="image/png,image/jpeg,image/webp"
-        aria-label="选择本地图片"
-        @change="addImage"
-      />
-    </div>
+        <Tooltip
+          ><TooltipTrigger as-child
+            ><Button
+              variant="ghost"
+              size="icon"
+              aria-label="撤销"
+              :disabled="!canUndo"
+              @click="undo"
+              ><Undo2 /></Button></TooltipTrigger
+          ><TooltipContent>撤销</TooltipContent></Tooltip
+        >
+        <Tooltip
+          ><TooltipTrigger as-child
+            ><Button
+              variant="ghost"
+              size="icon"
+              aria-label="重做"
+              :disabled="!canRedo"
+              @click="redo"
+              ><Redo2 /></Button></TooltipTrigger
+          ><TooltipContent>重做</TooltipContent></Tooltip
+        >
+        <Separator orientation="vertical" class="mx-1 h-5" />
+        <DropdownMenu
+          ><DropdownMenuTrigger as-child
+            ><Button variant="ghost" size="icon" aria-label="标题级别"
+              ><Heading /></Button></DropdownMenuTrigger
+          ><DropdownMenuContent
+            ><DropdownMenuGroup
+              ><DropdownMenuItem
+                v-for="level in 6"
+                :key="level"
+                @select="prefixLines('#'.repeat(level) + ' ')"
+                >{{ level }} 级标题</DropdownMenuItem
+              ></DropdownMenuGroup
+            ></DropdownMenuContent
+          ></DropdownMenu
+        >
+        <Tooltip v-for="tool in tools" :key="tool.label"
+          ><TooltipTrigger as-child
+            ><Button variant="ghost" size="icon" :aria-label="tool.label" @click="tool.action"
+              ><component :is="tool.icon" /></Button></TooltipTrigger
+          ><TooltipContent>{{ tool.label }}</TooltipContent></Tooltip
+        >
+        <DropdownMenu>
+          <DropdownMenuTrigger as-child
+            ><Button variant="ghost" size="icon" aria-label="更多操作"><MoreHorizontal /></Button
+          ></DropdownMenuTrigger>
+          <DropdownMenuContent>
+            <DropdownMenuGroup>
+              <DropdownMenuItem @select="emit('import')">导入作品</DropdownMenuItem>
+              <DropdownMenuItem @select="emit('backup')">下载项目备份</DropdownMenuItem>
+              <DropdownMenuItem @select="emit('downloadMarkdown')">下载 Markdown</DropdownMenuItem>
+              <DropdownMenuItem @select="emit('sample')">载入示例</DropdownMenuItem>
+            </DropdownMenuGroup>
+            <DropdownMenuSeparator />
+            <DropdownMenuGroup
+              ><DropdownMenuItem @select="emit('clear')"
+                >清空当前作品</DropdownMenuItem
+              ></DropdownMenuGroup
+            >
+          </DropdownMenuContent>
+        </DropdownMenu>
+        <Input
+          id="local-image"
+          ref="fileInput"
+          type="file"
+          class="hidden"
+          aria-hidden="true"
+          tabindex="-1"
+          accept="image/png,image/jpeg,image/webp"
+          aria-label="选择本地图片"
+          @change="addImage"
+          @cancel="imageInsertion = undefined"
+        />
+      </div>
+    </ScrollArea>
     <div v-if="!store.ready" class="flex flex-col gap-4 p-4">
       <Skeleton class="h-8 w-2/3" /><Skeleton class="h-40 w-full" />
     </div>
